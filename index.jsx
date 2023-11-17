@@ -134,14 +134,15 @@ const Wrapper = styled.div`
     width: 20px;
     height: 50%;
   }
-
-  .health-bar div {
-    border: 2px solid var(--accent);
-  }
 `;
 
 // * SCRIPT
-State.init({ pokemons: [], loading: true, currentDrag: null });
+State.init({
+  pokemons: [],
+  loading: true,
+  splashLoaded: false,
+  currentDrag: null,
+});
 
 // config constants
 const API = "https://pokeapi.co/api/v2",
@@ -154,6 +155,11 @@ const API = "https://pokeapi.co/api/v2",
 function getPokemons() {
   if (!state.loading) return;
 
+  setTimeout(() => State.update({ splashLoaded: true }), 2000);
+
+  // fetch data based on `LIMIT` which corresponds to pokemons amount
+  // and `OFFSET` which corresponds to index of complete collection from
+  // which the data is brought
   asyncFetch(`${API}/pokemon?limit=${LIMIT}&offset=${OFFSET}`)
     .then(({ body }) => {
       let pokemons = [];
@@ -170,11 +176,22 @@ function getPokemons() {
         });
       }
 
-      State.update({ pokemons, loading: false });
+      State.update({ pokemons: shuffleArray(pokemons), loading: false });
     })
     .catch((error) => console.error(error));
 }
 getPokemons();
+
+/* Randomize array in-place using Durstenfeld shuffle algorithm */
+function shuffleArray(array) {
+  for (var i = array.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
+  }
+  return array;
+}
 
 function getRandomInt(max) {
   const min = 0;
@@ -270,7 +287,7 @@ function deletePokemon(pokemons, pokemonIndex) {
 }
 
 // * TEMPLATE RENDER
-const splashPage = <Widget src="detextre4.near/widget/splash-page" />,
+const splashScreen = <Widget src="detextre4.near/widget/splash-screen" />,
   minigame = (
     <Wrapper className={state.pokemons.length > 1 ? "" : "finished"}>
       <h2>
@@ -303,7 +320,7 @@ const splashPage = <Widget src="detextre4.near/widget/splash-page" />,
             {/* health bar widget */}
             <Widget
               src="detextre4.near/widget/health-bar"
-              props={{ healthBars: pokemon.health }}
+              props={{ healthBars: pokemon.health, bg: "#000" }}
             />
             <OverlayTrigger
               // show attack dialog when pokemon is attacking
@@ -326,5 +343,5 @@ const splashPage = <Widget src="detextre4.near/widget/splash-page" />,
   );
 
 // show splash page while data is loading
-if (state.loading) return splashPage;
+if (state.loading || !state.splashLoaded) return splashScreen;
 return minigame;
